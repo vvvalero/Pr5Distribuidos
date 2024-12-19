@@ -11,6 +11,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -286,20 +288,31 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
                 GroupMessage mensaje = new GroupMessage(galias,msg,miembroEnvia);
                 
                 // Enviamos un mensaje a todos los miembros del grupo, menos al que los envia
+                Thread[] hilos = new Thread[grupo.listaMiembros.size()];
+                
                 for(int i=0;i<grupo.listaMiembros.size();i++){
                     miembroRecibe = grupo.listaMiembros.get(i);
-                    
                     if(!miembroRecibe.nombreMiembro.equals(alias)){ // mas eficiente que comprar groupMembers
                         SendingMessage enviarMensaje = new SendingMessage(miembroRecibe,mensaje,grupo); //falta por implementar la clase SendingMessage
-                        Thread hilo = new Thread(enviarMensaje);
-                        hilo.start();
+                        hilos[i] = new Thread(enviarMensaje);
+                        hilos[i].start();
+                    } else {
+                        hilos[i] = null;
                     }
                 }
                 
-                while(grupo.enviosEnCurso>0){} // no me gusta nada pero tampoco se me ocurre otra cosa. 
-                                                // re:Quizas se puede hacer con un semaforo
+                for(int i=0;i<grupo.listaMiembros.size();i++){ //Cambiado a un join, 
+                    if(hilos[i] != null){
+                        hilos[i].join();
+                    }
+                }
+                
+                grupo.enviosEnCurso = 0;
+                
                 this.AllowMembers(grupo.nombreGrupo);
             }
+        } catch (InterruptedException ex) {
+            Logger.getLogger(GroupServer.class.getName()).log(Level.SEVERE, null, ex);
         }finally{lock.unlock();}
         return true;
     }

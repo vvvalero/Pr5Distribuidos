@@ -17,12 +17,13 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.lang.reflect.Proxy;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
- * @author valen,alber
+ * @author valen,alber y el karlorzas
  */
 public class Client implements IClient{
     private static Object logger;
@@ -75,42 +76,44 @@ public class Client implements IClient{
      * @param args the command line arguments
      */
     public static void main(String[] args) throws RemoteException, NotBoundException {
-        // TODO code application logic here
         Client cliente = new Client();
-        String hostname_servidor = "localhost"; // Poner la IP del servidor
-        String nombreRegistroServidor = "GroupServer";//Nombre del registro dado de alta en el servidor con Naming.rebind();
-        String ruta = "C:/Users/valen/OneDrive/Documentos/NetBeansProjects/SecurityPolicies";
-        //establecer politica de seguridad como en el servidor. Se hace al inicializar
-        //groupserver
-        
+        String hostname_servidor = "localhost"; 
+        String nombreRegistroServidor = "GroupServer"; 
+        String ruta = "C:/Users/valen/OneDrive/Documentos/NetBeansProjects/SecurityPolicies"; 
+        int puertecitoCliente ;
+
         Scanner sc = new Scanner(System.in);
         int menu = 1;
-        String hostname_cliente=null;
+        String hostname_cliente = null;
         try {
-            //Cogemos el hostname de la maquina
             hostname_cliente = InetAddress.getLocalHost().getHostName();
-            direccion_cliente = java.net.InetAddress.getLocalHost().getHostAddress();
+            
         } catch (UnknownHostException ex) {
-            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("OH NOOOOOOOOO!");
         }
+
         System.setProperty("java.security.policy", ruta);
-        //System.setProperty("java.rmi.server.hostname", "192.168.68.77"); // Poner la IP del servidor
-        System.out.println("Policy: " + System.getProperty("java.security.policy"));
-        if (System.getSecurityManager()==null){
+        if (System.getSecurityManager() == null) {
             System.setSecurityManager(new SecurityManager());
         }
         System.out.println("Inicializado cliente");
         System.out.println("Escribe un alias:");
         alias = sc.nextLine();
-        //Localizamos el registro
+        
+        System.out.println("Introduce el puerto para el cliente:");
+        puertecitoCliente = sc.nextInt();  //Intrducimos nosotros el puerto
+
         Registry reg = LocateRegistry.getRegistry(hostname_servidor);
         try {
-            //gp es el objeto de la clase GroupServer del servidor. Podemos ejecutar sus metodos gp.Metodo()
             gp = (GroupServerInterface) reg.lookup(nombreRegistroServidor);
-            
-            //Abrimos un menú²
-            while(menu > 0 && menu < 12){
-                System.out.println("Menu²");
+
+            // Exportar el cliente como un objeto remoto
+            IClient stub = (IClient) UnicastRemoteObject.exportObject(cliente, puertecitoCliente); 
+            Registry registry = LocateRegistry.createRegistry(1099); // Puerto para el cliente
+            registry.rebind(alias, stub); 
+
+            while (menu > 0 && menu < 14) {
+                System.out.println("Menu");
                 System.out.println("    1.  Crear grupo");
                 System.out.println("    2.  Eliminar grupo");
                 System.out.println("    3.  Añadir cliente a grupo");
@@ -133,7 +136,7 @@ public class Client implements IClient{
                     case 1: // Crear grupo
                         System.out.println("Introduce el nombre del grupo:");
                         String nombreGrupo = sc.next();
-                        boolean result = gp.createGroup(nombreGrupo, alias, hostname_cliente);
+                        boolean result = gp.createGroup(nombreGrupo, alias, hostname_cliente, puertecitoCliente);
                         if (result) {
                             System.out.println("Grupo " + nombreGrupo + " creado con éxito.");
                         } else {
@@ -155,7 +158,7 @@ public class Client implements IClient{
                     case 3: // Añadir cliente a grupo
                         System.out.println("Introduce el nombre del grupo:");
                         nombreGrupo = sc.next();
-                        result = gp.addMember(nombreGrupo, alias, hostname_cliente);
+                        result = gp.addMember(nombreGrupo, alias, hostname_cliente, puertecitoCliente);
                         if (result) {
                             System.out.println("Miembro añadido al grupo " + nombreGrupo + " con éxito.");
                         } else {
@@ -268,6 +271,7 @@ public class Client implements IClient{
                         }    
                     default: // Terminar
                         System.out.println("Terminando el cliente...");
+                        UnicastRemoteObject.unexportObject(cliente, true); 
                         break;
                 }
             }
