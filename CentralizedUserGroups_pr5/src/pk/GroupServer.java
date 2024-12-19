@@ -296,7 +296,8 @@ public class GroupServer extends UnicastRemoteObject implements GroupServerInter
                     }
                 }
                 
-                while(grupo.enviosEnCurso>0){} // no me gusta nada pero tampoco se me ocurre otra cosa
+                while(grupo.enviosEnCurso>0){} // no me gusta nada pero tampoco se me ocurre otra cosa. 
+                                                // re:Quizas se puede hacer con un semaforo
                 this.AllowMembers(grupo.nombreGrupo);
             }
         }finally{lock.unlock();}
