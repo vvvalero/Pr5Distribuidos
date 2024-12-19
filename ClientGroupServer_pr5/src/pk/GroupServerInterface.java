@@ -11,7 +11,7 @@ import java.util.LinkedList;
 
 /**
  *
- * @author valen
+ * @author valen,alber
  */
 public interface GroupServerInterface extends Remote{
     boolean createGroup(String galias,String oalias, String ohostname, int puerto) throws RemoteException;

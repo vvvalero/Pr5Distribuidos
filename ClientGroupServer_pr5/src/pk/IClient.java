@@ -10,7 +10,7 @@ import java.rmi.RemoteException;
 
 /**
  *
- * @author valen
+ * @author valen,alber
  */
 public interface IClient extends Remote{
         void DepositMessage(GroupMessage m) throws RemoteException;

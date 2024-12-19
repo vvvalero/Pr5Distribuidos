@@ -9,7 +9,7 @@ import java.io.Serializable;
 
 /**
  *
- * @author valen
+ * @author valen,alber
  */
 public class GroupMessage implements Serializable{
     String nombreGrupo;
