@@ -17,14 +17,60 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.lang.reflect.Proxy;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
- * @author valen
+ * @author valen,alber
  */
 public class Client implements IClient{
     private static Object logger;
-
+    private static LinkedList<GroupMessage> laCola = new LinkedList<>();
+    private static GroupServerInterface gp;
+    private static String alias=null;
+    private static ReentrantLock lock = new ReentrantLock();
+    private static Condition nuevoMensaje = lock.newCondition();
+    
+    @Override
+    public void DepositMessage(GroupMessage m){
+        lock.lock();
+        
+        laCola.push(m);
+        nuevoMensaje.signal();
+        
+        lock.unlock();
+    }
+    
+    private static byte[] receiveGroupMessage(String galias) throws RemoteException{
+        lock.lock();
+        byte[] mensaje = null;
+        if (gp.isMember(galias, alias)){
+            // Devolvemos y eliminamos el primer mensaje del grupo pedido.
+            int i=0;
+            for(i=0;i<laCola.size() && mensaje==null;i++){
+                if(laCola.get(i).nombreGrupo.equals(galias)){
+                    mensaje = laCola.get(i).mensaje;        // Seria mejor una cola por grupo
+                    laCola.remove(i);
+                }
+            }
+            while(mensaje==null){
+                try {
+                    nuevoMensaje.await();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                for(i=0;i<laCola.size() && mensaje==null;i++){
+                    if(laCola.get(i).nombreGrupo.equals(galias)){
+                        mensaje = laCola.get(i).mensaje;        
+                        laCola.remove(i);
+                    }
+                }
+            }
+        }
+        lock.unlock();
+        return mensaje;
+    }
     /**
      * @param args the command line arguments
      */
@@ -36,7 +82,7 @@ public class Client implements IClient{
         String ruta = "C:/Users/valen/OneDrive/Documentos/NetBeansProjects/SecurityPolicies";
         //establecer politica de seguridad como en el servidor. Se hace al inicializar
         //groupserver
-        String alias=null;
+        
         Scanner sc = new Scanner(System.in);
         int menu = 1;
         String hostname_cliente=null;
@@ -60,7 +106,8 @@ public class Client implements IClient{
         Registry reg = LocateRegistry.getRegistry(hostname_servidor);
         try {
             //gp es el objeto de la clase GroupServer del servidor. Podemos ejecutar sus metodos gp.Metodo()
-            GroupServerInterface gp = (GroupServerInterface) reg.lookup(nombreRegistroServidor);
+            gp = (GroupServerInterface) reg.lookup(nombreRegistroServidor);
+            
             //Abrimos un menú²
             while(menu > 0 && menu < 12){
                 System.out.println("Menu²");
@@ -215,10 +262,10 @@ public class Client implements IClient{
                         System.out.println("Introduce el nombre del grupo:");
                         nombreGrupo = sc.next();
                         try{
-                            if(gp.isGroup(nombreGrupo)){
-                                System.out.println("Escribe un mensaje para enviar al grupo");
-                                byte[] msg = ; // Para que sea serializable
-                                if(gp.)
+                            System.out.println(receiveGroupMessage(nombreGrupo).toString());
+                        }catch(RemoteException ex){
+                            System.out.println("OH NO!!\n" + ex.getMessage());
+                        }    
                     default: // Terminar
                         System.out.println("Terminando el cliente...");
                         break;
