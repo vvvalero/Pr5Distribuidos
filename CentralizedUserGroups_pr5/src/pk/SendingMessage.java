@@ -23,10 +23,12 @@ public class SendingMessage implements Runnable{
     GroupMember miembroRecibe;
     GroupMessage mensaje;
     Group grupo;
+    
     public SendingMessage(GroupMember Destino, GroupMessage mensaje,Group grupo){
         this.miembroRecibe=Destino;
         this.mensaje=mensaje;
         this.grupo=grupo;
+
     }  
     
     @Override
@@ -37,8 +39,8 @@ public class SendingMessage implements Runnable{
             Random tiempoAleatorio = new Random();
             registro = LocateRegistry.getRegistry(miembroRecibe.hostname,miembroRecibe.puertohost);
             Thread.sleep(tiempoAleatorio.nextInt(3100) + 3000);
-            System.setProperty("java.rmi.server.hostname", "localhost");
-            IClient InterfazCliente = (IClient) registro.lookup("Client"); // falta por crear la interfaz
+            //System.setProperty("java.rmi.server.hostname", "localhost");
+            IClient InterfazCliente = (IClient) registro.lookup("CLIENTASO"); // falta por crear la interfaz
             InterfazCliente.DepositMessage(mensaje);
 
         }catch(RemoteException | InterruptedException | NotBoundException ex){

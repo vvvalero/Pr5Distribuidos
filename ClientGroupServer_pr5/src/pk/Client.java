@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author valen,alber y el karlorzas
  */
-public class Client implements IClient{
+public class Client extends UnicastRemoteObject implements IClient{
     private static Object logger;
     private static LinkedList<GroupMessage> laCola = new LinkedList<>();
     private static GroupServerInterface gp;
@@ -33,10 +33,13 @@ public class Client implements IClient{
     private static ReentrantLock lock = new ReentrantLock();
     private static Condition nuevoMensaje = lock.newCondition();
     
-    @Override
-    public void DepositMessage(GroupMessage m){
-        lock.lock();
+    public Client()throws RemoteException{
         
+    }
+    
+    @Override
+    public void DepositMessage(GroupMessage m)throws RemoteException{
+        lock.lock();
         laCola.push(m);
         nuevoMensaje.signalAll();
         
@@ -51,6 +54,7 @@ public class Client implements IClient{
                 // Devolvemos y eliminamos el primer mensaje del grupo pedido.
                 int i=0;
                 for(i=0;i<laCola.size() && mensaje==null;i++){
+                    System.out.println("Recibiendo mensaje");
                     if(laCola.get(i).nombreGrupo.equals(galias)){
                         mensaje = laCola.get(i).mensaje;        // Seria mejor una cola por grupo
                         laCola.remove(i);
@@ -58,6 +62,7 @@ public class Client implements IClient{
                 }
                 while(mensaje==null){
                     try {
+                        System.out.println("Esperando al mensaje");
                         nuevoMensaje.await();
                     } catch (InterruptedException ex) {
                         Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
@@ -85,7 +90,7 @@ public class Client implements IClient{
         String nombreRegistroServidor = "GroupServer"; 
         String ruta = "C:/Users/valen/OneDrive/Documentos/NetBeansProjects/SecurityPolicies"; 
         int puertecitoCliente ;
-
+        
         Scanner sc = new Scanner(System.in);
         int menu = 1;
         String hostname_cliente = null;
@@ -106,15 +111,15 @@ public class Client implements IClient{
         
         System.out.println("Introduce el puerto para el cliente:");
         puertecitoCliente = sc.nextInt();  //Intrducimos nosotros el puerto
-
+        
         Registry reg = LocateRegistry.getRegistry(hostname_servidor);
         try {
             gp = (GroupServerInterface) reg.lookup(nombreRegistroServidor);
 
             // Exportar el cliente como un objeto remoto
-            IClient stub = (IClient) UnicastRemoteObject.exportObject(cliente, puertecitoCliente); 
-            Registry registry = LocateRegistry.getRegistry(1099); // Puerto para el cliente
-            registry.rebind(alias, stub); 
+            //IClient stub = (IClient) UnicastRemoteObject.exportObject(cliente, puertecitoCliente); 
+            Registry registry = LocateRegistry.createRegistry(puertecitoCliente); // Puerto para el cliente
+            registry.rebind("CLIENTASO", cliente); 
 
             while (menu > 0 && menu < 14) {
                 System.out.println("Menu");
