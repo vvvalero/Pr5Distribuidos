@@ -278,7 +278,8 @@ public class Client extends UnicastRemoteObject implements IClient{
                         nombreGrupo = sc.next();
                         try{
                             if (gp.isGroup(nombreGrupo)) {
-                                System.out.println(receiveGroupMessage(nombreGrupo).toString());
+                                String mensaje = new String(receiveGroupMessage(nombreGrupo));
+                                System.out.println(mensaje);
                              } else {
                                 System.out.println("No se ha encontrado el grupo");
                             }
