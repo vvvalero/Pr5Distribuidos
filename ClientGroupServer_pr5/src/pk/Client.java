@@ -109,7 +109,7 @@ public class Client implements IClient{
 
             // Exportar el cliente como un objeto remoto
             IClient stub = (IClient) UnicastRemoteObject.exportObject(cliente, puertecitoCliente); 
-            Registry registry = LocateRegistry.createRegistry(1099); // Puerto para el cliente
+            Registry registry = LocateRegistry.getRegistry(1099); // Puerto para el cliente
             registry.rebind(alias, stub); 
 
             while (menu > 0 && menu < 14) {
@@ -245,18 +245,21 @@ public class Client implements IClient{
                     case 12: // Enviar mensaje
                         System.out.println("Introduce el nombre del grupo:");
                         nombreGrupo = sc.next();
-                        try{
-                            if(gp.isGroup(nombreGrupo)){
-                                System.out.println("Escribe un mensaje para enviar al grupo");
-                                byte[] msg = sc.nextLine().getBytes(); // Para que sea serializable
-                                if(gp.sendGroupMessage(nombreGrupo, alias, msg))
+                        sc.nextLine(); // Limpiar el buffer después de nextInt o next()
+                        try {
+                            if (gp.isGroup(nombreGrupo)) {
+                                System.out.println("Escribe un mensaje para enviar al grupo:");
+                                String inputMessage = sc.nextLine(); // Leer el mensaje completo del usuario
+                                byte[] msg = inputMessage.getBytes(); // Para que sea serializable
+                                if (gp.sendGroupMessage(nombreGrupo, alias, msg)) {
                                     System.out.println("Mensaje enviado con éxito");
-                                else
+                                } else {
                                     System.out.println("El mensaje no se ha podido enviar");
-                            }else {
+                                }
+                            } else {
                                 System.out.println("No se ha encontrado el grupo");
                             }
-                        }catch (NullPointerException e) {
+                        } catch (NullPointerException e) {
                             System.out.println("No es parte del grupo");
                         }
                         break;
