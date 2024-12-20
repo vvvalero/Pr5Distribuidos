@@ -38,39 +38,43 @@ public class Client implements IClient{
         lock.lock();
         
         laCola.push(m);
-        nuevoMensaje.signal();
+        nuevoMensaje.signalAll();
         
         lock.unlock();
     }
     
     private static byte[] receiveGroupMessage(String galias) throws RemoteException{
         lock.lock();
-        byte[] mensaje = null;
-        if (gp.isMember(galias, alias)){
-            // Devolvemos y eliminamos el primer mensaje del grupo pedido.
-            int i=0;
-            for(i=0;i<laCola.size() && mensaje==null;i++){
-                if(laCola.get(i).nombreGrupo.equals(galias)){
-                    mensaje = laCola.get(i).mensaje;        // Seria mejor una cola por grupo
-                    laCola.remove(i);
-                }
-            }
-            while(mensaje==null){
-                try {
-                    nuevoMensaje.await();
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-                }
+        try {
+            byte[] mensaje = null;
+            if (gp.isMember(galias, alias)){
+                // Devolvemos y eliminamos el primer mensaje del grupo pedido.
+                int i=0;
                 for(i=0;i<laCola.size() && mensaje==null;i++){
                     if(laCola.get(i).nombreGrupo.equals(galias)){
-                        mensaje = laCola.get(i).mensaje;        
+                        mensaje = laCola.get(i).mensaje;        // Seria mejor una cola por grupo
                         laCola.remove(i);
                     }
                 }
+                while(mensaje==null){
+                    try {
+                        nuevoMensaje.await();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    for(i=0;i<laCola.size() && mensaje==null;i++){
+                        if(laCola.get(i).nombreGrupo.equals(galias)){
+                            mensaje = laCola.get(i).mensaje;
+                            laCola.remove(i);
+                        }
+                    }
+                }
             }
+            return mensaje;
+        } finally {
+            lock.unlock();
         }
-        lock.unlock();
-        return mensaje;
+        
     }
     /**
      * @param args the command line arguments
@@ -268,7 +272,11 @@ public class Client implements IClient{
                         System.out.println("Introduce el nombre del grupo:");
                         nombreGrupo = sc.next();
                         try{
-                            System.out.println(receiveGroupMessage(nombreGrupo).toString());
+                            if (gp.isGroup(nombreGrupo)) {
+                                System.out.println(receiveGroupMessage(nombreGrupo).toString());
+                             } else {
+                                System.out.println("No se ha encontrado el grupo");
+                            }
                         }catch(RemoteException ex){
                             System.out.println("OH NO!!\n" + ex.getMessage());
                         }    
